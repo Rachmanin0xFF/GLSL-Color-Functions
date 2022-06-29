@@ -2,6 +2,8 @@
 
 Color space conversions, metrics, and other utility functions for color in GLSL.
 
+Still very much a work-in-progress!
+
 ## Currently Supported
 Color Spaces:
 * XYZ

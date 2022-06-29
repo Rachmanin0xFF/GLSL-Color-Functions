@@ -1,10 +1,22 @@
 // @author Adam Lastowka
+
+// DISCLAIMER: I am not a color scientist, please correct the code if it is wrong anywhere!
+
+// A note on white points:
+//      All the matrices shown here assume D65.
+//      If you are making something with GLSL, there is a 99% chance it will appear on a monitor, not in print.
+//      D65 is is the most common white point for computer displays, so I make it the default.
+//      You can change the WHITE variable here, but it will only afffect RGB<->XYZ and XYZ<->L*a*b* conversions.
+//      If you do end up needing to use D50 for printing or something, that should hopefully be sufficient.
+
+// ALSO: The chromatic adaptation matrices are NOT calculated on-the-fly!!!
+//       If you want to use a custom white point, you will have to do it yourself, sorry!
+
 //                          0.3127/0.3290  1.0  (1.0-0.3127-0.3290)/0.329
 const vec3 D65_WHITE = vec3(0.95045592705, 1.0, 1.08905775076);
 //                          0.3457/0.3585  1.0  (1.0-0.3457-0.3585)/0.3585
 const vec3 D50_WHITE = vec3(0.96429567643, 1.0, 0.82510460251);
 
-// sets reference white for all conversions
 vec3 WHITE = D65_WHITE;
 
 //========// TRANSFORMATION MATRICES //========//
@@ -35,6 +47,18 @@ const mat3 XYZ_TO_RGB_M = mat3(
     0.05563007969699366, -0.20397695888897652, 1.0569715142428786
 );
 
+// P3Linear <-> XYZ
+const mat3 P3LINEAR_TO_XYZ_M = mat3(
+    0.4865709486482162, 0.26566769316909306, 0.1982172852343625,
+    0.2289745640697488, 0.6917385218365064, 0.079286914093745,
+    0.0000000000000000, 0.04511338185890264, 1.043944368900976
+);
+const mat3 XYZ_TO_P3LINEAR_M = mat3(
+    2.493496911941425, -0.9313836179191239, -0.40271078445071684,
+    -0.8294889695615747, 1.7626640603183463, 0.023624685841943577,
+    0.03584583024378447, -0.07617238926804182, 0.9568845240076872
+);
+
 //========// CONVERSION FUNCTIONS //========//
 
 // sRGB<->RGB
@@ -60,6 +84,28 @@ vec3 RGB_TO_XYZ(vec3 rgb) {
 }
 vec3 XYZ_TO_RGB(vec3 xyz) {
     return WHITE == D65_WHITE ? (xyz * XYZ_TO_RGB_M) : ((xyz * XYZ50_TO_XYZ) * XYZ_TO_RGB_M);
+}
+
+// P3<->XYZ
+vec3 P3LINEAR_TO_XYZ(vec3 p3linear) {
+    return p3linear * P3LINEAR_TO_XYZ_M;
+}
+vec3 XYZ_TO_P3LINEAR(vec3 xyz) {
+    return xyz * XYZ_TO_P3LINEAR_M;
+}
+// Display P3 uses the sRGB TRC (gamma function).
+// It also uses the D65 white point.
+vec3 P3LINEAR_TO_DISPLAYP3(vec3 p3linear) {
+    return vec3(COMPAND_RGB(p3linear.x), COMPAND_RGB(p3linear.y), COMPAND_RGB(p3linear.z));
+}
+vec3 DISPLAYP3_TO_P3LINEAR(vec3 displayp3) {
+     return vec3(UNCOMPAND_SRGB(displayp3.x), UNCOMPAND_SRGB(displayp3.y), UNCOMPAND_SRGB(displayp3.z));
+}
+vec3 XYZ_TO_DISPLAYP3(vec3 xyz) {
+    return P3LINEAR_TO_DISPLAYP3(XYZ_TO_P3LINEAR(xyz));
+}
+vec3 DISPLAYP3_TO_XYZ(vec3 xyz) {
+    return P3LINEAR_TO_XYZ(DISPLAYP3_TO_P3LINEAR(xyz));
 }
 
 // L*a*b*/CIELAB

@@ -1,15 +1,17 @@
-
+// @author Adam Lastowka
 //                          0.3127/0.3290  1.0  (1.0-0.3127-0.3290)/0.329
 const vec3 D65_WHITE = vec3(0.95045592705, 1.0, 1.08905775076);
 //                          0.3457/0.3585  1.0  (1.0-0.3457-0.3585)/0.3585
 const vec3 D50_WHITE = vec3(0.96429567643, 1.0, 0.82510460251);
 
 // sets reference white for all conversions
-vec3 WHITE = D50_WHITE;
+vec3 WHITE = D65_WHITE;
 
 //========// TRANSFORMATION MATRICES //========//
 
-// chromatic adaptation D65<->D50
+// Chromatic adaptation between D65<->D50
+// XYZ color space does not depend on a reference white, but all other matrices here
+// assume D65. These "restretch" XYZ to the D50 reference white so the others can sitll work with D50.
 const mat3 XYZ_TO_XYZ50 = mat3(
     1.0479298208405488, 0.022946793341019088, -0.05019222954313557,
     0.029627815688159344, 0.990434484573249, -0.01707382502938514,
@@ -33,18 +35,16 @@ const mat3 XYZ_TO_RGB_M = mat3(
     0.05563007969699366, -0.20397695888897652, 1.0569715142428786
 );
 
-
 //========// CONVERSION FUNCTIONS //========//
 
-// converts sRGB floats to RGB
+// sRGB<->RGB
+// sRGB is standard "monitor" space, and the standard colorspace of the internet.
 float UNCOMPAND_SRGB(float a) {
     return (a > 0.04045) ? pow((a + 0.055) / 1.055, 2.4) : (a / 12.92);
 }
 vec3 SRGB_TO_RGB(vec3 srgb) {
     return vec3(UNCOMPAND_SRGB(srgb.x), UNCOMPAND_SRGB(srgb.y), UNCOMPAND_SRGB(srgb.z));
 }
-
-// converts RGB to sRGB
 float COMPAND_RGB(float a) {
     return (a <= 0.0031308) ? (12.92 * a) : (1.055 * pow(a, 0.41666666666) - 0.055);
 }
@@ -52,6 +52,9 @@ vec3 RGB_TO_SRGB(vec3 rgb) {
     return vec3(COMPAND_RGB(rgb.x), COMPAND_RGB(rgb.y), COMPAND_RGB(rgb.z));
 }
 
+// RGB<->XYZ
+// XYZ is the classic tristimulus color space developed in 1931 by the International Commission on Illumination (CIE, confusingly).
+// Most conversions between color spaces end up going through XYZ; it is a central 'hub' in the color space landscape.
 vec3 RGB_TO_XYZ(vec3 rgb) {
     return WHITE == D65_WHITE ? (rgb * RGB_TO_XYZ_M) : ((rgb * RGB_TO_XYZ_M) * XYZ_TO_XYZ50);
 }
@@ -60,6 +63,8 @@ vec3 XYZ_TO_RGB(vec3 xyz) {
 }
 
 // L*a*b*/CIELAB
+// CIELAB was developed in 1976 in an attempt to make a perceptually uniform color space.
+// While it doesn't always do a great job of this (especially in the deep blues), it is still frequently used.
 float XYZ_TO_LAB_F(float x) {
     //          (24/116)^3                         1/(3*(6/29)^2)     4/29
     return x > 0.00885645167 ? pow(x, 0.333333333) : 7.78703703704 * x + 0.13793103448;
@@ -72,7 +77,6 @@ vec3 XYZ_TO_LAB(vec3 xyz) {
         200.0 * (xyz_scaled.y - xyz_scaled.z)
     );
 }
-
 float LAB_TO_XYZ_F(float x) {
     //                               3*(6/29)^2         4/29
     return (x > 0.206897) ? x * x * x : (0.12841854934 * (x - 0.137931034));
@@ -85,11 +89,15 @@ vec3 LAB_TO_XYZ(vec3 Lab) {
         LAB_TO_XYZ_F(w - Lab.z / 200.0)
     );
 }
+
+// LCh
+// LCh is simply L*a*b* converted to polar coordinates.
+// Note: by convention, b* is in degrees!
 vec3 LAB_TO_LCH(vec3 Lab) {
     return vec3(
         Lab.x,
         sqrt(dot(Lab.yz, Lab.yz)),
-        atan(Lab.z, Lab.y * 180.0 / 3.14159265359)
+        atan(Lab.z, Lab.y * 57.2957795131)
     );
 }
 vec3 LCH_TO_LAB(vec3 LCh) {
@@ -100,8 +108,7 @@ vec3 LCH_TO_LAB(vec3 LCh) {
     );
 }
 
-
-// xyY conversions
+// xyY
 vec3 XYZ_TO_XYY(vec3 xyz) {
     return vec3(
         xyz.x / (xyz.x + xyz.y + xyz.z),

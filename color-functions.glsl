@@ -78,7 +78,7 @@ vec3 XYZ_TO_LAB(vec3 xyz) {
     );
 }
 float LAB_TO_XYZ_F(float x) {
-    //                               3*(6/29)^2         4/29
+    //                                     3*(6/29)^2         4/29
     return (x > 0.206897) ? x * x * x : (0.12841854934 * (x - 0.137931034));
 }
 vec3 LAB_TO_XYZ(vec3 Lab) {
@@ -92,7 +92,7 @@ vec3 LAB_TO_XYZ(vec3 Lab) {
 
 // LCh
 // LCh is simply L*a*b* converted to polar coordinates.
-// Note: by convention, b* is in degrees!
+// Note: by convention, h is in degrees!
 vec3 LAB_TO_LCH(vec3 Lab) {
     return vec3(
         Lab.x,
@@ -103,12 +103,14 @@ vec3 LAB_TO_LCH(vec3 Lab) {
 vec3 LCH_TO_LAB(vec3 LCh) {
     return vec3(
         LCh.x,
-        LCh.y * cos(LCh.z),
-        LCh.y * sin(LCh.z)
+        LCh.y * cos(LCh.z * 0.01745329251),
+        LCh.y * sin(LCh.z * 0.01745329251)
     );
 }
 
 // xyY
+// This is the color space used in chromaticity diagrams.
+// x and y encode chromaticity, while Y encodes luminance.
 vec3 XYZ_TO_XYY(vec3 xyz) {
     return vec3(
         xyz.x / (xyz.x + xyz.y + xyz.z),
@@ -122,4 +124,44 @@ vec3 XYY_TO_XYZ(vec3 xyY) {
         xyY.z,
         xyY.z * (1.0 - xyY.x - xyY.y) / xyY.y
     );
+}
+
+//========// OTHER UTILITY FUNCTIONS //========//
+
+// Cubic approximation of the planckian (black body) locus. This is a very good approximation for most purposes.
+// Returns chromaticity vec2 (x/y, no luminance) in xyY space.
+// Technically only designed for 1667K < T < 25000K, but you can push it further.
+
+// Credit to B. Kang et al. (2002) (https://api.semanticscholar.org/CorpusID:4489377)
+// Note: there may be a patent associated with this function
+// TODO: if()s are not shader-friendly. find faster method.
+vec2 PLANCKIAN_LOCUS_CUBIC_XY(float T) {
+    vec2 xy = vec2(0.0, 0.0);
+    if(T < 4000.0) {
+        xy.x = -0.2661239*1000000000.0/(T*T*T) - 0.2343589*1000000.0/(T*T) + 0.8776956*1000.0/T + 0.179910;
+
+        if(T < 2222.0) xy.y = -1.1063814*xy.x*xy.x*xy.x - 1.34811020*xy.x*xy.x + 2.18555832*xy.x - 0.20219683; 
+        else           xy.y = -0.9549476*xy.x*xy.x*xy.x - 1.37418593*xy.x*xy.x + 2.09137015*xy.x -  0.16748867;
+    } else {
+        xy.x = -3.0258469*1000000000.0/(T*T*T) + 2.1070379*1000000.0/(T*T) + 0.2226347*1000.0/T + 0.24039;
+
+        xy.y = 3.08175806*xy.x*xy.x*xy.x - 5.8733867*xy.x*xy.x + 3.75112997*xy.x - 0.37001483;
+    }
+    return xy;
+}
+
+// Finds the temperature of a color.
+// Approximation good to +/-3K for colors on the locus
+// Note: For colors past isotherm intersection points, temperatures bifurcate and have less meaning.
+// Only use this method to interperet colors near the locus.
+
+// TODO: Implement method with Robertson isotherms
+// TODO: Implement Bruce Lindbloom's excellent approximation: http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_T.html
+float XYY_MCCAMY_COLOR_TEMPERATURE(vec3 xyY) {
+    float n = (xyY.x - 0.3320)/(0.1858 - xyY.y);
+    return 449.0*n*n*n + 3525.0*n*n + 6823.3*n + 5520.33;
+}
+float XYZ_MCCAMY_COLOR_TEMPERATURE(vec3 XYZ) {
+    vec3 xyY = XYY_TO_XYZ(XYZ);
+    return XYY_MCCAMY_COLOR_TEMPERATURE(xyY);
 }

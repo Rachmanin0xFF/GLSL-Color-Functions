@@ -11,14 +11,12 @@ Color Spaces:
 * RGB
 * L\*a\*b\* (CIELAB)
 * LCh (CIELCh)
-
-White Points:
-* D50
-* D65
+* P3 Display
 
 Other:
 * Color from temperature (cubic approximation)
 * Temperature from color (McCamy approximation)
+* D65/D50 white point option for RGB<->XYZ and L*a*b*<->XYZ
 
 ## Credits
 

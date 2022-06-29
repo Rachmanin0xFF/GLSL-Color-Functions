@@ -16,7 +16,7 @@ Color Spaces:
 Other:
 * Color from temperature (cubic approximation)
 * Temperature from color (McCamy approximation)
-* D65/D50 white point option for RGB<->XYZ and L*a*b*<->XYZ
+* D65/D50 white point option for RGB<->XYZ and L\*a\*b\*<->XYZ
 
 ## Credits
 

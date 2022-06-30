@@ -32,12 +32,12 @@ vec3 WHITE = D65_WHITE;
 // Chromatic adaptation between D65<->D50
 // XYZ color space does not depend on a reference white, but all other matrices here
 // assume D65. These "restretch" XYZ to the D50 reference white so the others can sitll work with D50.
-const mat3 XYZ_TO_XYZ50 = mat3(
+const mat3 XYZ_TO_XYZ50_M = mat3(
     1.0479298208405488, 0.022946793341019088, -0.05019222954313557,
     0.029627815688159344, 0.990434484573249, -0.01707382502938514,
     -0.009243058152591178, 0.015055144896577895, 0.7518742899580008
 );
-const mat3 XYZ50_TO_XYZ = mat3(
+const mat3 XYZ50_TO_XYZ_M = mat3(
     0.9554734527042182, -0.023098536874261423, 0.0632593086610217,
     -0.028369706963208136, 1.0099954580058226, 0.021041398966943008,
     0.012314001688319899, -0.020507696433477912, 1.3303659366080753
@@ -71,6 +71,7 @@ const mat3 XYZ_TO_P3LINEAR_M = mat3(
 
 // sRGB<->RGB
 // sRGB is standard "monitor" space, and the standard colorspace of the internet.
+// The EOTF is roughly equivalent to a gamma of 2.2, but it acts differently in low values.
 float UNCOMPAND_SRGB(float a) {
     return (a > 0.04045) ? pow((a + 0.055) / 1.055, 2.4) : (a / 12.92);
 }
@@ -88,10 +89,10 @@ vec3 RGB_TO_SRGB(vec3 rgb) {
 // XYZ is the classic tristimulus color space developed in 1931 by the International Commission on Illumination (CIE, confusingly).
 // Most conversions between color spaces end up going through XYZ; it is a central 'hub' in the color space landscape.
 vec3 RGB_TO_XYZ(vec3 rgb) {
-    return WHITE == D65_WHITE ? (rgb * RGB_TO_XYZ_M) : ((rgb * RGB_TO_XYZ_M) * XYZ_TO_XYZ50);
+    return WHITE == D65_WHITE ? (rgb * RGB_TO_XYZ_M) : ((rgb * RGB_TO_XYZ_M) * XYZ_TO_XYZ50_M);
 }
 vec3 XYZ_TO_RGB(vec3 xyz) {
-    return WHITE == D65_WHITE ? (xyz * XYZ_TO_RGB_M) : ((xyz * XYZ50_TO_XYZ) * XYZ_TO_RGB_M);
+    return WHITE == D65_WHITE ? (xyz * XYZ_TO_RGB_M) : ((xyz * XYZ50_TO_XYZ_M) * XYZ_TO_RGB_M);
 }
 
 // P3<->XYZ
@@ -180,6 +181,16 @@ vec3 XYY_TO_XYZ(vec3 xyY) {
     );
 }
 
+// Composite function one-liners
+vec3 SRGB_TO_XYZ(vec3 srgb) { return RGB_TO_XYZ(SRGB_TO_RGB(srgb)); }
+vec3 XYZ_TO_SRGB(vec3 xyz)  { return RGB_TO_SRGB(XYZ_TO_RGB(xyz));  }
+
+vec3 SRGB_TO_LAB(vec3 srgb) { return XYZ_TO_LAB(SRGB_TO_XYZ(srgb)); }
+vec3 LAB_TO_SRGB(vec3 lab)  { return XYZ_TO_SRGB(XYZ_TO_LAB(lab));  }
+
+vec3 SRGB_TO_LCH(vec3 srgb) { return LAB_TO_LCH(SRGB_TO_LAB(srgb)); }
+vec3 LCH_TO_SRGB(vec3 lch)  { return LAB_TO_SRGB(LCH_TO_LAB(lch));  }
+
 //========// OTHER UTILITY FUNCTIONS //========//
 
 // Cubic approximation of the planckian (black body) locus. This is a very good approximation for most purposes.
@@ -205,9 +216,9 @@ vec2 PLANCKIAN_LOCUS_CUBIC_XY(float T) {
 }
 
 // Finds the temperature of a color.
-// Approximation good to +/-3K for colors on the locus
-// Note: For colors past isotherm intersection points, temperatures bifurcate and have less meaning.
-// Only use this method to interperet colors near the locus.
+// Approximation good to +/-3K for colors on the locus.
+// Note: For colors past isotherm intersection points, temperature has little meaning;
+//       only use this method to interperet colors near the locus.
 
 // TODO: Implement method with Robertson isotherms
 // TODO: Implement Bruce Lindbloom's excellent approximation:
@@ -285,4 +296,12 @@ float LAB_DELTA_E_CIE2000(vec3 lab1, vec3 lab2) {
     float RT = -RC*sin(2.0*dtheta)/TWO_PI;
     
     return sqrt(dLp*dLp/(SL*SL) + dCp*dCp/(SC*SC) + dHp*dHp/(SH*SH) + RT*dCp*dHp/(SC*SH));
+}
+
+XYZ_DELTA_E_CIE2000(vec3 xyz1, vec3 xyz2) {
+    return LAB_DELTA_E_CIE2000(XYZ_TO_LAB(xyz1), XYZ_TO_LAB(xyz2));
+}
+
+SRGB_DELTA_E_CIE2000(vec3 srgb1, vec3 srgb2) {
+    return LAB_DELTA_E_CIE2000(SRGB_TO_LAB(srgb1), SRGB_TO_LAB(srgb2));
 }

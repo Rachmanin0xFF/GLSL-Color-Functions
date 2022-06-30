@@ -157,7 +157,7 @@ vec3 LAB_TO_LCH(vec3 Lab) {
     return vec3(
         Lab.x,
         sqrt(dot(Lab.yz, Lab.yz)),
-        atan(Lab.z, Lab.y * 57.2957795131)
+        atan(Lab.z, Lab.y) * 57.2957795131
     );
 }
 vec3 LCH_TO_LAB(vec3 LCh) {

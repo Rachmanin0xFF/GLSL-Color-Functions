@@ -1,6 +1,7 @@
 // @author Adam Lastowka
-
 // DISCLAIMER: I am not a color scientist, please correct the code if it is wrong anywhere!
+
+// precision highp float; // :)
 
 #ifndef PI
 #define PI 3.14159265359

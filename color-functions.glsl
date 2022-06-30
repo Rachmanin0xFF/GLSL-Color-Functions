@@ -2,6 +2,13 @@
 
 // DISCLAIMER: I am not a color scientist, please correct the code if it is wrong anywhere!
 
+#ifndef PI
+#define PI 3.14159265359
+#endif
+#ifndef TWO_PI
+#define TWO_PI 6.28318530718
+#endif
+
 // A note on white points:
 //      All the matrices shown here assume D65.
 //      If you are making something with GLSL, there is a 99% chance it will appear on a monitor, not in print.
@@ -202,7 +209,8 @@ vec2 PLANCKIAN_LOCUS_CUBIC_XY(float T) {
 // Only use this method to interperet colors near the locus.
 
 // TODO: Implement method with Robertson isotherms
-// TODO: Implement Bruce Lindbloom's excellent approximation: http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_T.html
+// TODO: Implement Bruce Lindbloom's excellent approximation:
+//       http://www.brucelindbloom.com/index.html?Eqn_XYZ_to_T.html
 float XYY_MCCAMY_COLOR_TEMPERATURE(vec3 xyY) {
     float n = (xyY.x - 0.3320)/(0.1858 - xyY.y);
     return 449.0*n*n*n + 3525.0*n*n + 6823.3*n + 5520.33;
@@ -210,4 +218,70 @@ float XYY_MCCAMY_COLOR_TEMPERATURE(vec3 xyY) {
 float XYZ_MCCAMY_COLOR_TEMPERATURE(vec3 XYZ) {
     vec3 xyY = XYY_TO_XYZ(XYZ);
     return XYY_MCCAMY_COLOR_TEMPERATURE(xyY);
+}
+
+// This function gives you the *perceptual* difference between two colors in L*a*b* space.
+// Most implementations of it online are are actually wrong!!!
+//
+// Additionally, although it is often hailed as the current "most accurate" color difference
+// formula, it actually contains a pretty decent-sized discontinuity for colors with opposite hues.
+//     See "The CIEDE2000 Color-DifferenceFormula: Implementation Notes,
+//     Supplementary Test Data, and Mathematical Observations"
+//     by G. Sharma et al. for more information. Link:
+//     http://www2.ece.rochester.edu/~gsharma/ciede2000/ciede2000noteCRNA.pdf
+//
+float LAB_DELTA_E_CIE2000(vec3 lab1, vec3 lab2) {
+    // b = bar
+    // p = prime
+    float Cb7 = pow((sqrt(lab1.y*lab1.y + lab1.z*lab1.z) + sqrt(lab1.y*lab1.y + lab1.z*lab1.z))*0.5, 7.0);
+    //                                 25^7
+    float G = 0.5*(1.0-sqrt(Cb7/(Cb7 + 6103515625.0)));
+
+    float ap1 = lab1.y*(1.0 + G);
+    float ap2 = lab2.y*(1.0 + G);
+
+    float Cp1 = sqrt(ap1*ap1 + lab1.z*lab1.z);
+    float Cp2 = sqrt(ap2*ap2 + lab2.z*lab2.z);
+    
+    float hp1 = atan(lab1.z, ap1);
+    float hp2 = atan(lab2.z, ap2);
+    if(hp1 < 0.0) hp1 = TWO_PI + hp1;
+    if(hp2 < 0.0) hp2 = TWO_PI + hp2;
+    
+    float dLp = lab2.x - lab1.x;
+    float dCp = Cp2 - Cp1;
+    float dhp = hp2 - hp1;
+    dhp += (dhp>PI) ? -TWO_PI: (dhp<-PI) ? TWO_PI : 0.0;
+    // don't need to handle Cp1*Cp2==0 case because it's implicitly handled by the next line
+    float dHp = 2.0*sqrt(Cp1*Cp2)*sin(dhp/2.0);
+    
+    float Lbp = (lab1.x + lab2.x)*0.5;
+    float Cbp = sqrt(Cp1 + Cp2)/2.0;
+    float Cbp7 = pow(Cbp, 7.0);
+    
+    // CIEDE 2000 Color-Difference \Delta E_{00}
+    // This where everyone messes up (because it's a pain)
+    // it's also the source of the discontinuity...
+    
+    // We need to average the angles h'_1 and h'_2 (hp1 and hp2) here.
+    // This is a surprisingly nontrivial task.
+    // Credit to https://stackoverflow.com/a/1159336 for the succinct formula.
+    float hbp = mod( ( hp1 - hp2 + PI), TWO_PI ) - PI;
+    hbp = mod((hp2 + ( hbp / 2.0 ) ), TWO_PI);
+    if(Cp1*Cp2 == 0.0) hbp = hp1 + hp2;
+    
+    //                             30 deg                                                  6 deg                            63 deg
+    float T = 1.0 - 0.17*cos(hbp - 0.52359877559) + 0.24*cos(2.0*hbp) + 0.32*cos(3.0*hbp + 0.10471975512) - 0.2*cos(4.0*hbp - 1.09955742876);
+    
+    float dtheta = 30.0*exp(-(hbp - 4.79965544298)*(hbp - 4.79965544298)/25.0);
+    float RC = 2.0*sqrt(Cbp7/(Cbp7 + 6103515625.0));
+    
+    float Lbp2 = (Lbp-50.0)*(Lbp-50.0);
+    float SL = 1.0 + 0.015*Lbp2/sqrt(20.0 + Lbp2);
+    float SC = 1.0 + 0.045*Cbp;
+    float SH = 1.0 + 0.015*Cbp*T;
+    
+    float RT = -RC*sin(2.0*dtheta)/TWO_PI;
+    
+    return sqrt(dLp*dLp/(SL*SL) + dCp*dCp/(SC*SC) + dHp*dHp/(SH*SH) + RT*dCp*dHp/(SC*SH));
 }

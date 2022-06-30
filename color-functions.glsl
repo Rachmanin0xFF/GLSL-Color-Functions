@@ -27,11 +27,16 @@ const vec3 D50_WHITE = vec3(0.96429567643, 1.0, 0.82510460251);
 
 vec3 WHITE = D65_WHITE;
 
+// sRGB / ITU-R BT.709 spec
+const vec3 LUMA_VEC = vec3(0.2126, 0.7152, 0.0722);
+
 //========// TRANSFORMATION MATRICES //========//
 
 // Chromatic adaptation between D65<->D50
 // XYZ color space does not depend on a reference white, but all other matrices here
 // assume D65. These "restretch" XYZ to the D50 reference white so the others can sitll work with D50.
+
+// from https://www.color.org/sRGB.pdf
 const mat3 XYZ_TO_XYZ50_M = mat3(
     1.0479298208405488, 0.022946793341019088, -0.05019222954313557,
     0.029627815688159344, 0.990434484573249, -0.01707382502938514,
@@ -66,6 +71,21 @@ const mat3 XYZ_TO_P3LINEAR_M = mat3(
     2.493496911941425, -0.9313836179191239, -0.40271078445071684,
     -0.8294889695615747, 1.7626640603183463, 0.023624685841943577,
     0.03584583024378447, -0.07617238926804182, 0.9568845240076872
+);
+
+
+// From https://www.color.org/sYCC.pdf
+// This matrix is actually also used in the ITU-R BT.601 specification
+const mat3 SRGB_TO_SYCC_M = mat3(
+    0.2990,   0.5870,  0.1140,
+    -0.1687, -0.3312,  0.5,
+    0.5,     -0.4187, -0.0813
+);
+
+const mat3 SYCC_TO_SRGB_M = mat3(
+    1.0,       -0.0000368,   1.40198757,
+    1.0000344, -0.34412512, -0.71412839,
+    0.9998228,  1.77203910, -0.00000804
 );
 
 //========// CONVERSION FUNCTIONS //========//
@@ -185,6 +205,19 @@ vec3 XYY_TO_XYZ(vec3 xyY) {
         xyY.z,
         xyY.z * (1.0 - xyY.x - xyY.y) / xyY.y
     );
+}
+
+// Think of sYCC as a fast way to get from sRGB to a more perceptual color space that encodes chroma seperately from luma.
+// Output format: vec3(luma, blue-difference chroma, red-difference chroma)
+
+// sYCC is a part of the YCbCr color space family, and was formally introduced in 2003 by the ICC.
+// It uses the same transformation matrix as BT.601.
+// Note that JPEG uses the BT.601 matrix, too, just slightly modified (I assume to properly handle rounding), and it maps to [0...255] instead.
+vec3 SRGB_TO_SYCC(vec3 srgb) {
+    return srgb*SRGB_TO_SYCC_M;
+}
+vec3 SYCC_TO_SRGB(vec3 sycc) {
+    return sycc*SYCC_TO_SRGB_M;
 }
 
 // Composite function one-liners
@@ -310,4 +343,31 @@ float XYZ_DELTA_E_CIE2000(vec3 xyz1, vec3 xyz2) {
 
 float SRGB_DELTA_E_CIE2000(vec3 srgb1, vec3 srgb2) {
     return LAB_DELTA_E_CIE2000(SRGB_TO_LAB(srgb1), SRGB_TO_LAB(srgb2));
+}
+
+// The most computationally expensive (and maybe the best?) way to tell how bright a color appears.
+// Calculates L* as "the perceptual difference between pure black and the input color".
+float SRGB_PERCEPTUAL_LIGHTNESS_DE2000(vec3 srgb) {
+    return LAB_DELTA_E_CIE2000(SRGB_TO_LAB(srgb), vec3(0.0, 0.0, 0.0));
+}
+
+// Just returns the L* component after L*a*b* conversion
+// Warning: resultant L* is in L*a*b* space (0 to 100)
+float SRGB_PERCEPTUAL_LIGHTNESS_LAB(vec3 srgb) {
+    return SRGB_TO_LAB(srgb).x;
+}
+
+// These functions are very similar, but I am keeping them seperate to ensure they are used properly.
+// Luma is the weighted sum of GAMMA-COMPRESSED RGB components, while
+// Luminance (relative luminance) is the weighted sum of LINEAR RGB components.
+float SRGB_LUMA(vec3 srgb) {
+    return dot(srgb, LUMA_VEC);
+}
+float RGB_RELATIVE_LUMINANCE(vec3 rgb) {
+    return dot(rgb, LUMA_VEC);
+}
+
+// if you use this function and want to display it, make sure you gamma-compress the result with COMPAND_RGB(float x)
+float SRGB_RELATIVE_LUMINANCE(vec3 srgb) {
+    return dot(SRGB_TO_RGB(srgb), LUMA_VEC);
 }

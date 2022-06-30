@@ -14,11 +14,12 @@ Color Spaces:
 * L\*a\*b\* (CIELAB)
 * LCh (CIELCh)
 * P3 Display
+* sYCC (sRGB's official YCbCr space)
 
 Other:
 * A (proper) implementation of CIE Delta-E 2000
-* Color from temperature (cubic approximation)
-* Temperature from color (McCamy approximation)
+* Color from temperature (cubic approximation) and temperature from color (McCamy approximation)
+* Lightness / Luminance / Luma functions
 * D65/D50 white point option for RGB<->XYZ and L\*a\*b\*<->XYZ
 
 ## Credits

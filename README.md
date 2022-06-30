@@ -1,6 +1,6 @@
 # GLSL-Color-Functions
 
-![LCh color space sRGB gamut](screenshot.png?raw=true "sRGB Gamut in LCh Color Space")
+![LCh color space sRGB gamut](screenshot2.png?raw=true "sRGB Gamut in LCh Color Space")
 
 Color space conversions, metrics, and other utility functions for color in GLSL.
 
@@ -27,3 +27,4 @@ Inspired by [tobspr's](https://github.com/tobspr) [GLSL-Color-Spaces](https://gi
 Algorithms and math from:
 * [Bruce Lindbloom](http://www.brucelindbloom.com/)
 * [Color.js](https://colorjs.io/)
+* Other authors as listed in comments

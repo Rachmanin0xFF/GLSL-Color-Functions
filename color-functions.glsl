@@ -126,6 +126,11 @@ float XYZ_TO_LAB_F(float x) {
 }
 vec3 XYZ_TO_LAB(vec3 xyz) {
     vec3 xyz_scaled = xyz / WHITE;
+    xyz_scaled = vec3(
+        XYZ_TO_LAB_F(xyz_scaled.x),
+        XYZ_TO_LAB_F(xyz_scaled.y),
+        XYZ_TO_LAB_F(xyz_scaled.z)
+    );
     return vec3(
         (116.0 * xyz_scaled.y) - 16.0,
         500.0 * (xyz_scaled.x - xyz_scaled.y),
@@ -186,7 +191,7 @@ vec3 SRGB_TO_XYZ(vec3 srgb) { return RGB_TO_XYZ(SRGB_TO_RGB(srgb)); }
 vec3 XYZ_TO_SRGB(vec3 xyz)  { return RGB_TO_SRGB(XYZ_TO_RGB(xyz));  }
 
 vec3 SRGB_TO_LAB(vec3 srgb) { return XYZ_TO_LAB(SRGB_TO_XYZ(srgb)); }
-vec3 LAB_TO_SRGB(vec3 lab)  { return XYZ_TO_SRGB(XYZ_TO_LAB(lab));  }
+vec3 LAB_TO_SRGB(vec3 lab)  { return XYZ_TO_SRGB(LAB_TO_XYZ(lab));  }
 
 vec3 SRGB_TO_LCH(vec3 srgb) { return LAB_TO_LCH(SRGB_TO_LAB(srgb)); }
 vec3 LCH_TO_SRGB(vec3 lch)  { return LAB_TO_SRGB(LCH_TO_LAB(lch));  }
@@ -298,10 +303,10 @@ float LAB_DELTA_E_CIE2000(vec3 lab1, vec3 lab2) {
     return sqrt(dLp*dLp/(SL*SL) + dCp*dCp/(SC*SC) + dHp*dHp/(SH*SH) + RT*dCp*dHp/(SC*SH));
 }
 
-XYZ_DELTA_E_CIE2000(vec3 xyz1, vec3 xyz2) {
+float XYZ_DELTA_E_CIE2000(vec3 xyz1, vec3 xyz2) {
     return LAB_DELTA_E_CIE2000(XYZ_TO_LAB(xyz1), XYZ_TO_LAB(xyz2));
 }
 
-SRGB_DELTA_E_CIE2000(vec3 srgb1, vec3 srgb2) {
+float SRGB_DELTA_E_CIE2000(vec3 srgb1, vec3 srgb2) {
     return LAB_DELTA_E_CIE2000(SRGB_TO_LAB(srgb1), SRGB_TO_LAB(srgb2));
 }

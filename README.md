@@ -22,10 +22,21 @@ Other:
 * Lightness / Luminance / Luma functions
 * D65/D50 white point option for RGB<->XYZ and L\*a\*b\*<->XYZ
 
+## Planned (descending priority):
+* HSL/HSV
+* Chroma/Hue getter functions
+* Delta E CMC
+* [Oklab](https://bottosson.github.io/posts/oklab/)
+* Color temperature adjustment
+* Interpolation wrapper functions
+* CIELUV
+* Gamut mapping?
+
 ## Credits
 
 Inspired by [tobspr's](https://github.com/tobspr) [GLSL-Color-Spaces](https://github.com/tobspr/GLSL-Color-Spaces).
 Algorithms and math from:
+* [CIE](https://cie.co.at/) and [ICC](https://www.color.org/)
 * [Bruce Lindbloom](http://www.brucelindbloom.com/)
 * [Color.js](https://colorjs.io/)
 * Other authors as listed in comments

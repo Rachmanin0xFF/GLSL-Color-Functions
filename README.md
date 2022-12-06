@@ -23,10 +23,10 @@ Other:
 * D65/D50 white point option for RGB<->XYZ and L\*a\*b\*<->XYZ
 
 ## Planned (descending priority):
+* [Oklab](https://bottosson.github.io/posts/oklab/)
 * HSL/HSV
 * Chroma/Hue getter functions
 * Delta E CMC
-* [Oklab](https://bottosson.github.io/posts/oklab/)
 * Color temperature adjustment
 * Interpolation wrapper functions
 * CIELUV

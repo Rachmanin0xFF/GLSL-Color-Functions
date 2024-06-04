@@ -15,6 +15,7 @@ Color Spaces:
 * LCh (CIELCh)
 * P3 Display
 * sYCC (sRGB's official YCbCr space)
+* OkLab
 
 Other:
 * A (proper) implementation of CIE Delta-E 2000
@@ -23,8 +24,7 @@ Other:
 * D65/D50 white point option for RGB<->XYZ and L\*a\*b\*<->XYZ
 
 ## Planned (descending priority):
-* [Oklab](https://bottosson.github.io/posts/oklab/)
-* HSL/HSV
+* [OkHSL/OkHSV](https://bottosson.github.io/posts/colorpicker/)
 * Chroma/Hue getter functions
 * Delta E CMC
 * Color temperature adjustment

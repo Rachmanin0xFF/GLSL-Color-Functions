@@ -73,7 +73,6 @@ const mat3 XYZ_TO_P3LINEAR_M = mat3(
     0.03584583024378447, -0.07617238926804182, 0.9568845240076872
 );
 
-
 // From https://www.color.org/sYCC.pdf
 // This matrix is actually also used in the ITU-R BT.601 specification
 const mat3 SRGB_TO_SYCC_M = mat3(
@@ -86,6 +85,33 @@ const mat3 SYCC_TO_SRGB_M = mat3(
     1.0,       -0.0000368,   1.40198757,
     1.0000344, -0.34412512, -0.71412839,
     0.9998228,  1.77203910, -0.00000804
+);
+
+// OKLab Stuff
+// The "M_1" matrix in Ottosson's specification
+const mat3 XYZ_TO_OKLAB_LMS = mat3(
+    0.8189330101, 0.0329845436, 0.0482003018,
+    0.3618667424, 0.9293118715, 0.2643662691,
+    -0.1288597137, 0.0361456387, 0.6338517070
+);
+// The "M_2" matrix in Ottosson's specification
+const mat3 OKLAB_LMS_TO_OKLAB = mat3(
+    0.2104542553, 1.97799849510, 0.0259040371,
+    0.793617785, -2.4285922050, 0.7827717662,
+    -0.0040720468, 0.4505937099, -0.8086757660
+);
+
+// Inverse M_1
+const mat3 OKLAB_LMS_TO_XYZ = mat3(
+    1.227013851, -0.040580178, -0.076381285,
+    -0.557799981, 1.11225687, -0.421481978,
+    0.281256149, -0.071676679, 1.58616322
+);
+// Inverse M_2
+const mat3 OKLAB_TO_OKLAB_LMS = mat3(
+    1.0, 1.0, 1.0,
+    0.396337792, -0.105561342, -0.089484182,
+    0.215803758, -0.063854175, -1.291485538
 );
 
 //========// CONVERSION FUNCTIONS //========//
@@ -207,6 +233,19 @@ vec3 XYY_TO_XYZ(vec3 xyY) {
     );
 }
 
+// Björn Ottosson's OkLab
+// Details here https://bottosson.github.io/posts/oklab/
+// Next comes OkHSL / OkHSV
+vec3 XYZ_TO_OKLAB(vec3 xyz) {
+    vec3 lms = XYZ_TO_OKLAB_LMS*xyz;
+    return OKLAB_LMS_TO_OKLAB*pow(lms, vec3(1.0)/3.0);
+}
+
+vec3 OKLAB_TO_XYZ(vec3 OkLab) {
+    vec3 lms0 = OKLAB_TO_OKLAB_LMS*OkLab;
+    return OKLAB_LMS_TO_XYZ*(lms0*lms0*lms0);
+}
+
 // Think of sYCC as a fast way to get from sRGB to a more perceptual color space that encodes chroma seperately from luma.
 // Output format: vec3(luma, blue-difference chroma, red-difference chroma)
 
@@ -229,6 +268,9 @@ vec3 LAB_TO_SRGB(vec3 lab)  { return XYZ_TO_SRGB(LAB_TO_XYZ(lab));  }
 
 vec3 SRGB_TO_LCH(vec3 srgb) { return LAB_TO_LCH(SRGB_TO_LAB(srgb)); }
 vec3 LCH_TO_SRGB(vec3 lch)  { return LAB_TO_SRGB(LCH_TO_LAB(lch));  }
+
+vec3 OKLAB_TO_SRGB(vec3 OkLab) { return XYZ_TO_SRGB(OKLAB_TO_XYZ(OkLab)); }
+vec3 SRGB_TO_OKLAB(vec3 srgb)  { return XYZ_TO_OKLAB(SRGB_TO_XYZ(srgb));  }
 
 //========// OTHER UTILITY FUNCTIONS //========//
 

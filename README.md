@@ -4,7 +4,7 @@
 
 Color space conversions, metrics, and other utility functions for color in GLSL.
 
-Still very much a work-in-progress! If you see anything wrong, please let me know (or make a new branch if you're feeling nice).
+Still very much a work-in-progress! If you see anything wrong, please let me know (or open a PR if you're feeling nice).
 
 ## Currently Included:
 Color Spaces:
